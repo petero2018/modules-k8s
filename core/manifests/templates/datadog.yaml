@@ -1,0 +1,46 @@
+datadog:
+  clusterName: ${eks_cluster}
+  tags:
+  - "kube_cluster:${eks_cluster}"
+  - "kube_environment:${environment}"
+  - "kube_status:${kube_status}"
+  - "product:${product}"
+  - "region:${region}"
+  loglevel: WARN
+  podLabelsAsTags:
+    is-ephemeral: kube_is_ephemeral
+    team: team
+    impact: impact
+    service: app
+  checksCardinality: "${checks_cardinality}"
+
+
+  dogstatsd:
+    port: 8125
+    useHostPort: true
+    nonLocalTraffic: true
+
+  apm:
+    # Enable this to enable APM and tracing, on port 8126
+    enabled: ${enable_datadog_apm}
+
+  logs:
+    # Enable Datadog log collection
+    enabled: ${enable_datadog_logs}
+    containerCollectAll: ${enable_datadog_logs}
+
+clusterAgent:
+  enabled: true
+  metricsProvider:
+    enabled: true
+    # clusterAgent.metricsProvider.useDatadogMetrics
+    # Enable usage of DatadogMetric CRD to autoscale on arbitrary Datadog queries
+    useDatadogMetrics: true
+  envDict:
+    DD_EXTERNAL_METRICS_PROVIDER_MAX_AGE: 180 # Default 120. Added 1 extra minute to avoid msk metrics interruptions
+
+agents:
+  tolerations:
+  - key: "jenkins"
+    operator: "Exists"
+    effect: "NoExecute"

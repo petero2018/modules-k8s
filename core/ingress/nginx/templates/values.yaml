@@ -1,0 +1,27 @@
+controller:
+  ingressClass: ${ingress_class_name}
+  ingressClassResource:
+    name: ${ingress_class_name}
+  service:
+    type: ${ingress_service_type}
+    annotations:
+      ${ingress_service_annotations}
+  publishService:
+    enabled: ${ingress_publish_service}
+  config:
+    # disable send NGINX info on headers
+    server-tokens: false
+    # Pass X-Forwarded-For headers
+    use-forwarded-headers: true
+    # Keep all X-Forwarded-For
+    compute-full-forwarded-for: true
+  metrics:
+    enabled: true
+  autoscaling:
+    enabled: true
+    minReplicas: ${ingress_min_replicas}
+    maxReplicas: ${ingress_max_replicas}
+serviceAccount:
+  create: true
+rbac:
+  create: true

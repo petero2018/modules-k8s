@@ -1,0 +1,192 @@
+config:
+  outputs: |
+    %{~ if DEBUG_OUTPUT ~}
+    [OUTPUT]
+        Name  stdout
+        Match *
+    %{~endif ~}
+    %{~ if KAFKA_ENABLED ~}
+    [OUTPUT]
+        Name                            kafka
+        Match                           *
+        Brokers                         ${KAFKA_BROKERS}
+        Topics                          ${KAFKA_TOPIC}
+        timestamp_format                iso8601_ns
+        rdkafka.log.connection.close    false
+        rdkafka.socket.keepalive.enable true
+        rdkafka.compression.codec       lz4
+        rdkafka.request.required.acks   1
+        rdkafka.security.protocol       sasl_ssl
+        rdkafka.sasl.mechanism          SCRAM-SHA-512
+        rdkafka.sasl.username           ${KAFKA_USERNAME}
+        rdkafka.sasl.password           ${KAFKA_PASSWORD}
+    %{~endif ~}
+    %{~ if S3_ENABLED ~}
+    # S3 Application
+    [OUTPUT]
+        Name            s3
+        Match           k8s.${APPLICATION_TAG}.*
+        bucket          ${S3_BUCKET}
+        region          ${AWS_REGION}
+        total_file_size ${S3_FILE_SIZE}
+        s3_key_format   /${S3_KEY_PREFIX}/${APPLICATION_TAG}/${S3_KEY_FORMAT}
+        compression     ${S3_COMPRESSION}
+
+    %{~ for group_tag, group_containers in CONTAINER_GROUPS ~}
+    # S3 Group
+    [OUTPUT]
+        Name            s3
+        Match           k8s.${group_tag}.*
+        bucket          ${S3_BUCKET}
+        region          ${AWS_REGION}
+        total_file_size ${S3_FILE_SIZE}
+        s3_key_format   /${S3_KEY_PREFIX}/${group_tag}/${S3_KEY_FORMAT}
+        compression     ${S3_COMPRESSION}
+
+    %{~ endfor ~}
+    %{~ if DATAPLANE_ENABLED ~}
+    # S3 Dataplane
+    [OUTPUT]
+        Name            s3
+        Match           k8s.${DATAPLANE_TAG}.*
+        bucket          ${S3_BUCKET}
+        region          ${AWS_REGION}
+        total_file_size ${S3_FILE_SIZE}
+        s3_key_format   /${S3_KEY_PREFIX}/${DATAPLANE_TAG}/${S3_KEY_FORMAT}
+        compression     ${S3_COMPRESSION}
+
+    %{~ endif ~}
+    %{~ if HOST_ENABLED ~}
+    # S3 Host
+    [OUTPUT]
+        Name            s3
+        Match           ${HOST_TAG_PREFIX}.*
+        bucket          ${S3_BUCKET}
+        region          ${AWS_REGION}
+        total_file_size ${S3_FILE_SIZE}
+        s3_key_format   /${S3_KEY_PREFIX}/${HOST_TAG_PREFIX}/${S3_KEY_FORMAT}
+        compression     ${S3_COMPRESSION}
+
+    %{~ endif ~}
+    %{~ if SYSTEMD_ENABLED ~}
+    # S3 Systemd
+    [OUTPUT]
+        Name            s3
+        Match           ${SYSTEMD_TAG}.*
+        bucket          ${S3_BUCKET}
+        region          ${AWS_REGION}
+        total_file_size ${S3_FILE_SIZE}
+        s3_key_format   /${S3_KEY_PREFIX}/${SYSTEMD_TAG}/${S3_KEY_FORMAT}
+        compression     ${S3_COMPRESSION}
+
+    %{~ endif ~}
+    %{~ endif ~}
+    %{~ if OPENSEARCH_ENABLED ~}
+    # OpenSearch Applications
+    [OUTPUT]
+        Name               opensearch
+        Match              k8s.${APPLICATION_TAG}.*
+        Host               ${OPENSEARCH_HOST}
+        Port               443
+        tls                On
+        AWS_Auth           On
+        AWS_Region         ${AWS_REGION}
+        Index              ${OPENSEARCH_INDEX}-${APPLICATION_TAG}
+        Logstash_Format    On
+        Logstash_Prefix    ${OPENSEARCH_INDEX}-${APPLICATION_TAG}
+        Include_Tag_Key    On
+        Tag_Key            tag
+        Generate_ID        On
+        Suppress_Type_Name On
+        Buffer_Size        False
+        Replace_Dots       On
+        Trace_Error        On
+        Workers            6
+
+    %{ for group_tag, group_containers in CONTAINER_GROUPS ~}# Opensearch container group ${group_tag}
+    [OUTPUT]
+        Name               opensearch
+        Match              k8s.${group_tag}.*
+        Host               ${OPENSEARCH_HOST}
+        Port               443
+        tls                On
+        AWS_Auth           On
+        AWS_Region         ${AWS_REGION}
+        Index              ${OPENSEARCH_INDEX}-${group_tag}
+        Logstash_Format    On
+        Logstash_Prefix    ${OPENSEARCH_INDEX}-${group_tag}
+        Include_Tag_Key    On
+        Tag_Key            tag
+        Generate_ID        On
+        Suppress_Type_Name On
+        Buffer_Size        False
+        Replace_Dots       On
+        Trace_Error        On
+
+    %{ endfor ~}
+    %{~ if DATAPLANE_ENABLED ~}# Opensearch Dataplane
+    [OUTPUT]
+        Name               opensearch
+        Match              k8s.${DATAPLANE_TAG}.*
+        Host               ${OPENSEARCH_HOST}
+        Port               443
+        tls                On
+        AWS_Auth           On
+        AWS_Region         ${AWS_REGION}
+        Index              ${OPENSEARCH_INDEX}-${DATAPLANE_TAG}
+        Logstash_Format    On
+        Logstash_Prefix    ${OPENSEARCH_INDEX}-${DATAPLANE_TAG}
+        Include_Tag_Key    On
+        Tag_Key            tag
+        Generate_ID        On
+        Suppress_Type_Name On
+        Buffer_Size        False
+        Replace_Dots       On
+        Trace_Error        On
+
+    %{~ endif ~}
+    %{~ if HOST_ENABLED ~}
+    # Opensearch Host files
+    [OUTPUT]
+        Name               opensearch
+        Match              ${HOST_TAG_PREFIX}.*
+        Host               ${OPENSEARCH_HOST}
+        Port               443
+        tls                On
+        AWS_Auth           On
+        AWS_Region         ${AWS_REGION}
+        Index              ${OPENSEARCH_INDEX}-${HOST_TAG_PREFIX}
+        Logstash_Format    On
+        Logstash_Prefix    ${OPENSEARCH_INDEX}-${HOST_TAG_PREFIX}
+        Include_Tag_Key    On
+        Tag_Key            tag
+        Generate_ID        On
+        Suppress_Type_Name On
+        Buffer_Size        False
+        Replace_Dots       On
+        Trace_Error        On
+
+    %{~ endif ~}
+    %{~ if SYSTEMD_ENABLED ~}
+    # Opensearch Systemd
+    [OUTPUT]
+        Name               opensearch
+        Match              ${SYSTEMD_TAG}.*
+        Host               ${OPENSEARCH_HOST}
+        Port               443
+        tls                On
+        AWS_Auth           On
+        AWS_Region         ${AWS_REGION}
+        Index              ${OPENSEARCH_INDEX}-${SYSTEMD_TAG}
+        Logstash_Format    On
+        Logstash_Prefix    ${OPENSEARCH_INDEX}-${SYSTEMD_TAG}
+        Include_Tag_Key    On
+        Tag_Key            tag
+        Generate_ID        On
+        Suppress_Type_Name On
+        Buffer_Size        False
+        Replace_Dots       On
+        Trace_Error        On
+
+    %{~ endif ~}
+    %{~ endif ~}

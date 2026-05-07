@@ -1,0 +1,97 @@
+readinessProbe:
+  exec:
+    command:
+    - /usr/share/filebeat/filebeat
+    - test
+    - config
+
+daemonset:
+  extraVolumes:
+  - name: varlogcontainers
+    hostPath:
+      path: /var/log/containers
+  extraVolumeMounts:
+  - name: varlogcontainers
+    mountPath: /var/log/containers
+    readOnly: true
+  tolerations:
+  - key: "dedicated"
+    operator: "Exists"
+    effect: "NoExecute"
+  - key: "jenkins"
+    operator: "Exists"
+    effect: "NoExecute"
+  - key: "architecture"
+    operator: "Exists"
+    effect: "NoExecute"
+
+filebeatConfig:
+  filebeat.yml: |
+    name: filebeat
+    tags: [filebeat]
+    filebeat.modules:
+    - module: system
+    filebeat.inputs:
+    - type: container
+      paths: ["/var/log/containers/*.log"]
+      fields:
+        cluster: ${eks_cluster}
+        environment: ${environment}
+        kube_status: ${kube_status}
+        product: ${product}
+        enable_core_components_logs: ${enable_core_components_logs}
+      processors:
+      - add_kubernetes_metadata:
+          in_cluster: true
+          matchers:
+          - logs_path:
+              logs_path: "/var/log/containers/"
+      - drop_event:
+          when:
+            equals:
+              kubernetes.container.name: filebeat
+      %{ if length(drop_services) > 0}%{ for service in drop_services }
+      - drop_event:
+          when:
+            equals:
+              kubernetes.labels.app: ${service}%{ endfor }
+      %{ endif }
+    output.redis:
+      enabled: true
+      hosts: [${output_redis_host}]
+      key: "filebeat"
+    processors:
+    - drop_fields:
+        fields:
+        - prospector
+        - offset
+        - input
+        - beat
+        - host
+        - meta.cloud.provider
+        - meta.cloud.region
+        - meta.cloud.machine_type
+        - ecs
+        - container
+        - agent.ephemeral_id
+        - agent.id
+        - agent.name
+        - agent.type
+        - kubernetes.labels.pod-template-hash
+        - kubernetes.pod.uid
+        - kubernetes.replicaset.name
+        - kubernetes.labels.deploy
+        - log.file.path
+        - log.offset
+        - stream
+        - index_prefix
+        - /.*\.version\.build_date/
+    - drop_fields:
+        when:
+          regexp: {source: "/var/log/containers/.*"}
+        fields: [source]
+    %{ if length(drop_fields) > 0 }
+    - drop_fields:
+        %{ for field in drop_fields }- ${field}
+        %{ endfor}
+    %{ endif }

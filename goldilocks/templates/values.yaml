@@ -1,0 +1,43 @@
+# VPA Config
+vpa:
+  enabled: true
+  # Must not update any pod given VPA recommendations
+  updater:
+    enabled: false
+  # Conditionally create recommender storage
+  %{ if prometheus_url != "" }
+  recommender:
+    extraArgs:
+      prometheus-address: "${prometheus_url}"
+      storage: "prometheus"
+  %{ endif }
+# Goldilocks Limits
+controller:
+  resources:
+    requests:
+      cpu: ${controller_requests_cpu}
+      memory: ${controller_requests_memory}
+    limits:
+      cpu: ${controller_limits_cpu}
+      memory: ${controller_limits_memory}
+dashboard:
+  resources:
+    requests:
+      cpu: ${dashboard_requests_cpu}
+      memory: ${dashboard_requests_memory}
+    limits:
+      cpu: ${dashboard_limits_cpu}
+      memory: ${dashboard_limits_memory}
+  # Ingress
+  %{ if ingress_host != "" }
+  ingress:
+    enabled: true
+    %{ if ingress_class != "" }
+    ingressClassName: "${ingress_class}"
+    %{ endif }
+    hosts:
+      - host: "${ingress_host}"
+        paths:
+          - path: /
+            type: ImplementationSpecific
+  %{ endif }

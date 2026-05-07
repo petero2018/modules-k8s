@@ -1,0 +1,218 @@
+{
+  "admin": {
+    "disabled": false
+  },
+  "logging": {
+    "logs": {
+      "default": {
+        "level": "${log_level}"
+      }
+    }
+  },
+  "storage": {
+    "module": "dynamodb",
+    "table": "${dynamodb_table_name}",
+    "aws_endpoint": "",
+    "aws_region": "${aws_region}",
+    "aws_disable_ssl": false,
+    "lock_timeout": 0,
+    "lock_polling_interval": 0
+  },
+  "apps": {
+    "tls": {
+      "automation": {
+        "policies": [
+          {
+            "must_staple": false,
+            "renewal_window_ratio": 0,
+            "key_type": "rsa2048",
+            "on_demand": true,
+            "issuers": [
+              {
+                "module": "acme",
+                "email": "${certificates_email}",
+                "challenges": {
+                  "http": {
+                    "disabled": ${disable_http_challenge}
+                  },
+                  "tls-alpn": {
+                    "disabled": ${disable_tls_alpn_challenge}
+                  }
+                }
+              },
+              {
+                "module": "zerossl",
+                "email": "${certificates_email}",
+                "challenges": {
+                  "http": {
+                    "disabled": ${disable_http_challenge}
+                  },
+                  "tls-alpn": {
+                    "disabled": ${disable_tls_alpn_challenge}
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "on_demand": {
+          "rate_limit": {
+            "interval": 0,
+            "burst": 0
+          },
+          "ask": "${confirmation_endpoint_url}"
+        },
+        "ocsp_interval": 0,
+        "renew_interval": 0
+      },
+      "session_tickets": {},
+      "certificates": {
+        "automate": []
+      }
+    },
+    "http": {
+      "servers": {
+        "healthcheck": {
+          "automatic_https": {
+            "disable": true
+          },
+          "listen": [":8080"],
+          "listener_wrappers": [
+            {"wrapper": "go_proxyproto", "timeout": "5s"},
+            {"wrapper": "tls"}
+          ],
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "static_response",
+                  "status_code": "200",
+                  "body": "OK"
+                }
+              ]
+            }
+          ]
+        },
+        "monitoring": {
+          "automatic_https": {
+            "disable": true
+          },
+          "listen": [":9000"],
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "metrics"
+                }
+              ]
+            }
+          ]
+        },
+        "http-listener": {
+          "listen": [":80"],
+          "listener_wrappers": [
+            {"wrapper": "go_proxyproto", "timeout": "5s"},
+            {"wrapper": "tls"}
+          ],
+          "automatic_https": {
+            "disable": true
+          },
+          "logs": {},
+          "metrics": {},
+          "routes": [
+            {
+              "match": [{
+                "path_regexp": {
+                  "pattern": "/\\.well-known/acme-challenge/.+"
+                }
+              }],
+              "handle": [{
+                "handler": "acme_server"
+              }]
+            },
+            {
+              "match": [{
+                "not": [{
+                  "remote_ip": {
+                    "ranges": ${allowed_cidrs},
+                    "forwarded": false
+                  }
+                }]
+              }],
+              "handle": [
+                {
+                  "handler": "static_response",
+                  "status_code": "401",
+                  "body": "Unauthorized"
+                }
+              ]
+            }
+          ]
+        },
+        "custom-domains": {
+          "listener_wrappers": [
+            {"wrapper": "go_proxyproto", "timeout": "5s"},
+            {"wrapper": "http_redirect"},
+            {"wrapper": "tls"}
+          ],
+          "logs": {},
+          "metrics": {},
+          "automatic_https": {
+            "disable": false
+          },
+          "listen": [":443"],
+          "routes": [
+            {
+              "match": [{
+                "not": [{
+                  "remote_ip": {
+                    "ranges": ${allowed_cidrs},
+                    "forwarded": false
+                  }
+                }]
+              }],
+              "handle": [
+                {
+                  "handler": "static_response",
+                  "status_code": "401",
+                  "body": "Unauthorized"
+                }
+              ]
+            },
+            {
+              "terminal": false,
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "transport": {
+                    "protocol": "http",
+                    "tls": {
+                      "server_name": "${proxied_host}",
+                      "insecure_skip_verify": true
+                    }
+                  },
+                  "upstreams": [
+                    {
+                      "dial": "${proxied_host}:${proxied_port}"
+                    }
+                  ],
+                  "headers": {
+                    "request": {
+                      "set": {
+                        "Host": ["{http.request.host}"],
+                        "X-Forwarded-For": ["{http.request.host}"],
+                        "X-Forwarded-Via": ["${alias_domain}"],
+                        "X-Forwarded-Host": ["${proxied_host}"],
+                        "X-Forwarded-Proto": ["https"]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

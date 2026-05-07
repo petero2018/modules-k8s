@@ -1,0 +1,29 @@
+registry: txt
+policy: sync
+txtOwnerId: ${txt_owner_id}
+
+provider: aws
+aws:
+  region: ${aws_region}
+  zoneType: public
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: ${iam_role_arn}
+
+interval: ${interval}
+triggerLoopOnEvent: ${watch_events}
+tolerations:
+  - key: "CriticalAddonsOnly"
+    operator: "Exists"
+    effect: "NoSchedule"
+nodeSelector:
+  ${node_selector}
+
+pdb:
+  minAvailable: 1
+
+zoneIdFilters:
+%{ for zone_id in zone_ids ~}
+- ${zone_id}
+%{ endfor ~}

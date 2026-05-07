@@ -1,0 +1,20 @@
+# We want to allow only critical addons on the nodes where Karpenter is running
+tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
+    effect: NoSchedule
+
+controller:
+  resources:
+    requests:
+      cpu: 1
+      memory: 1Gi
+
+settings:
+  clusterName: ${eks_cluster}
+  interruptionQueue: ${queue_name}
+
+# The eks-worker-<cluster>-<region> role created by the master module is reused
+serviceAccount:
+  annotations:
+    "eks.amazonaws.com/role-arn": ${role_arn}

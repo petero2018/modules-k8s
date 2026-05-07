@@ -1,0 +1,10 @@
+package snyk
+
+orgs := ["${integration_id}"]
+
+default workload_events = false
+
+workload_events {
+	input.kind != "Job"
+	input.kind != "Pod"
+}

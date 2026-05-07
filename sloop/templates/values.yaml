@@ -1,0 +1,12 @@
+config: |-
+  {
+    "displayContext": "cluster",
+    "defaultNamespace": "default",
+    "defaultKind": "Pod",
+    "defaultLookback": "1h",
+    "leftBarLinks": [
+    ],
+    "resourceLinks": [
+    ],
+    "watchCrds": ${watch_crd}
+  }

@@ -1,0 +1,19 @@
+- rolearn: ${worker_role_arn}
+  username: system:node:{{EC2PrivateDNSName}}
+  groups:
+    - system:bootstrappers
+    - system:nodes
+- rolearn: arn:aws:iam::${aws_account_id}:role/AdminRole
+  username: adminz
+  groups:
+    - system:masters
+- rolearn: arn:aws:iam::${aws_account_id}:role/TerraformRole
+  username: terraform
+  groups:
+    - system:masters
+- rolearn: arn:aws:iam::${aws_account_id}:role/CiCdRole
+  username: cicd
+  groups:
+    - system:masters
+- rolearn: arn:aws:iam::${aws_account_id}:role/DevRole
+  username: developers

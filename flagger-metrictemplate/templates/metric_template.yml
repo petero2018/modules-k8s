@@ -1,0 +1,13 @@
+apiVersion: flagger.app/v1beta1
+kind: MetricTemplate
+metadata:
+  name: ${name}
+  namespace: ${namespace}
+spec:
+  provider:
+    type: ${type}
+    address: ${address}
+    secretRef:
+      name: ${secret_name}
+  query: ${query}
+---

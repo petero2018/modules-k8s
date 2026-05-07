@@ -1,0 +1,38 @@
+global:
+  env: ${environment}
+  environment: ${environment}
+  region: ${region}
+  version: "${app_version}"
+  internalRootDomain: ${internal_root_domain}
+
+image:
+  name: ${image_repository}
+
+deploy:
+  command: [${join(",", formatlist("\"%s\"", command))}]
+  ports:
+    http: "${tostring(config.port)}"
+  annotations:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "9093,9094"
+  requests:
+    memory: ${resources.memory_requests}
+    cpu: ${resources.cpu_requests}
+  limits:
+    memory: ${resources.memory_limits}
+  sidecar:
+    statsd:
+      enabled: "false"
+  scale:
+    minReplicas: "${scale.min_replicas}"
+    maxReplicas: "${scale.max_replicas}"
+    cpu: "75"
+    memory: "75"
+
+config:
+  consumer_group_id: ${config.consumer_group_id}
+  destination_topic: ${config.destination_topic}
+  internal_queue_topic: ${config.internal_queue_topic}
+  kafka_brokers: "${join(",", config.kafka_brokers)}"
+  kafka_brokers_tls: "${tostring(config.kafka_brokers_tls)}"
+  kafka_consumer_group_name: ${config.kafka_consumer_group_name}
+  port: "${tostring(config.port)}"

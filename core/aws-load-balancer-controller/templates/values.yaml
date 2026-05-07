@@ -1,0 +1,10 @@
+clusterName: ${eks_cluster}
+region: ${aws_region}
+image:
+  repository: ${repository}
+serviceAccount:
+  annotations:
+    "eks.amazonaws.com/role-arn": ${role_arn}
+
+podDisruptionBudget:
+  maxUnavailable: 1

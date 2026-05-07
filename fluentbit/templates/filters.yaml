@@ -1,0 +1,127 @@
+config:
+  filters: |
+    %{~ if SYSTEMD_ENABLED ~}
+    # Format Systemd logs
+    [FILTER]
+        Name                modify
+        Match               ${SYSTEMD_TAG}.*
+        Rename              _HOSTNAME                   hostname
+        Rename              _SYSTEMD_UNIT               systemd_unit
+        Rename              MESSAGE                     message
+        Remove_regex        ^((?!hostname|systemd_unit|message).)*$
+    %{~ endif ~}
+
+    # Static fields
+    [FILTER]
+        Name modify
+        Match *
+        %{~ for key, value in STATIC_FIELDS ~}
+        Add ${key} ${value}
+        %{~ endfor ~}
+
+    %{~ if AWS_METADATA_ENABLED ~}
+    # AWS Metadata
+    [FILTER]
+        Name aws
+        Match *
+        imds_version ${AWS_IMDS_VERSION}
+        az ${AWS_AZ}
+        ec2_instance_id ${AWS_EC2_INSTANCE_ID}
+        ec2_instance_type ${AWS_EC2_INSTANCE_TYPE}
+        private_ip ${AWS_PRIVATE_IP}
+        ami_id ${AWS_AMI_ID}
+        account_id ${AWS_ACCOUNT_ID}
+        hostname ${AWS_HOSTNAME}
+        vpc_id ${AWS_VPC_ID}
+
+    # Nest AWS metadata under aws
+    [FILTER]
+        Name nest
+        Match *
+        Operation nest
+        Wildcard az
+        Wildcard ec2_instance_id
+        Wildcard ec2_instance_type
+        Wildcard private_ip
+        Wildcard ami_id
+        Wildcard account_id
+        Wildcard hostname
+        Wildcard vpc_id
+        Nest_under aws
+    %{~ endif ~}
+
+    %{~ if KUBERNETES_METADATA_ENABLED ~}
+    # Kubernetes Metadata (Application)
+    [FILTER]
+        Name                kubernetes
+        Match               ${APPLICATION_TAG}.*
+        Kube_URL            https://kubernetes.default.svc.cluster.local:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Kube_Tag_Prefix     ${APPLICATION_TAG}.var.log.containers.
+        Merge_Log           On
+        Merge_Log_Key       log_processed
+        K8S-Logging.Parser  On
+        K8S-Logging.Exclude On
+        Labels              ${KUBERNETES_LABELS}
+        Annotations         ${KUBERNETES_ANNOTATIONS}
+        Use_Kubelet         Off
+        Kubelet_Port        10250
+        Buffer_Size         0
+
+    [FILTER]
+        Name          rewrite_tag
+        Match         ${APPLICATION_TAG}.*
+        Rule          $stream ^.*$  k8s.${APPLICATION_TAG}.$kubernetes['namespace_name'].$kubernetes['pod_name'].$kubernetes['container_name'] false
+
+    # Kubernetes Metadata (Grouped Containers)
+    %{~ for group_tag, group_containers in CONTAINER_GROUPS ~}
+    [FILTER]
+        Name                kubernetes
+        Match               ${group_tag}.*
+        Kube_URL            https://kubernetes.default.svc.cluster.local:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Kube_Tag_Prefix     ${group_tag}.var.log.containers.
+        Merge_Log           On
+        Merge_Log_Key       log_processed
+        K8S-Logging.Parser  On
+        K8S-Logging.Exclude On
+        Labels              ${KUBERNETES_LABELS}
+        Annotations         ${KUBERNETES_ANNOTATIONS}
+        Use_Kubelet         Off
+        Kubelet_Port        10250
+        Buffer_Size         0
+
+    [FILTER]
+        Name          rewrite_tag
+        Match         ${group_tag}.*
+        Rule          $stream ^.*$  k8s.${group_tag}.$kubernetes['namespace_name'].$kubernetes['pod_name'].$kubernetes['container_name'] false
+
+    %{~ endfor ~}
+    %{~ if DATAPLANE_ENABLED ~}
+    # Kubernetes Metadata (Dataplane)
+    [FILTER]
+        Name                kubernetes
+        Match               ${DATAPLANE_TAG}.*
+        Kube_URL            https://kubernetes.default.svc.cluster.local:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Kube_Tag_Prefix     ${DATAPLANE_TAG}.var.log.containers.
+        Merge_Log           On
+        Merge_Log_Key       log_processed
+        K8S-Logging.Parser  On
+        K8S-Logging.Exclude On
+        Labels              ${KUBERNETES_LABELS}
+        Annotations         ${KUBERNETES_ANNOTATIONS}
+        Use_Kubelet         Off
+        Kubelet_Port        10250
+        Buffer_Size         0
+
+    [FILTER]
+        Name          rewrite_tag
+        Match         ${DATAPLANE_TAG}.*
+        Rule          $stream ^.*$  k8s.${DATAPLANE_TAG}.$kubernetes['namespace_name'].$kubernetes['pod_name'].$kubernetes['container_name'] false
+    %{~ endif ~}
+
+    %{~ endif ~}

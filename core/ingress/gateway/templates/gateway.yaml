@@ -1,0 +1,34 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ${name}
+  namespace: ${namespace}
+spec:
+  selector:
+  %{~ for key, value in ingress_labels ~}
+    ${key}: ${value}
+  %{~ endfor ~}
+  servers:
+  - hosts:
+    - "${hostname}"
+  %{~ if hostname != "*" ~}
+    - "*.${hostname}"
+  %{~ endif ~}
+    port:
+      name: http
+      number: 80
+      protocol: HTTP
+    tls:
+      httpsRedirect: true
+  - hosts:
+    - "${hostname}"
+  %{~ if hostname != "*" ~}
+    - "*.${hostname}"
+  %{~ endif ~}
+    port:
+      name: https
+      number: 443
+      protocol: HTTPS
+    tls:
+      mode: ${tls_mode}
+      credentialName: ${secret}

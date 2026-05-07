@@ -1,0 +1,20 @@
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/api/v2/metrics/prometheus"
+  prometheus.io/port: "2020"
+  ad.datadoghq.com/fluent-bit.checks: |
+    {
+      "openmetrics": {
+        "init_config": {},
+        "instances": [
+          {
+            "openmetrics_endpoint": "http://%%host%%:%%port%%/api/v2/metrics/prometheus",
+            "namespace": "fluentbit",
+            "metrics": [".*"]
+          }
+        ]
+      }
+    }
+
+podLabels:
+  app: fluent-bit # We use this label to ignore fluentbit logs on filebeat

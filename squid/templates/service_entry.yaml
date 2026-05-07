@@ -1,0 +1,15 @@
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: ${name}
+  namespace: ${namespace}
+spec:
+  addresses:
+  - ${ip_address}/32
+  hosts:
+  - ${name} # will be ignored anyway
+  location: MESH_EXTERNAL
+  ports:
+  - name: tcp
+    number: 3128
+    protocol: TCP

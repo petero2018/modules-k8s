@@ -1,0 +1,72 @@
+readinessProbe:
+  exec:
+    command:
+    - /usr/share/filebeat/filebeat
+    - test
+    - config
+
+daemonset:
+  tolerations:
+  - key: "jenkins"
+    operator: "Exists"
+    effect: "NoExecute"
+
+filebeatConfig:
+  filebeat.yml: |
+    name: filebeat
+    tags: [filebeat]
+    filebeat.modules:
+    - module: system
+    filebeat.inputs:
+    - type: container
+      paths: ["/var/lib/docker/containers/*/*.log"]
+      fields:
+        cluster: ${eks_cluster}
+        environment: ${environment}
+        kube_status: ${kube_status}
+        product: ${product}
+        enable_core_components_logs: ${enable_core_components_logs}
+      processors:
+      - add_docker_metadata:
+      - add_kubernetes_metadata:
+          in_cluster: true
+      - drop_event:
+          when:
+            equals:
+              kubernetes.container.name: filebeat
+    output.redis:
+      enabled: true
+      hosts: [${logstash_redis_host}]
+      key: "filebeat"
+    processors:
+    - drop_fields:
+        fields:
+        - prospector
+        - offset
+        - input
+        - beat
+        - host
+        - meta.cloud.provider
+        - meta.cloud.region
+        - meta.cloud.machine_type
+        - docker.container.labels
+        - ecs
+        - container
+        - agent.ephemeral_id
+        - agent.id
+        - agent.name
+        - agent.type
+        - kubernetes.labels.pod-template-hash
+        - kubernetes.pod.uid
+        - kubernetes.replicaset.name
+        - kubernetes.labels.deploy
+        - kubernetes.labels.app
+        - log.file.path
+        - log.offset
+        - stream
+        - index_prefix
+        - /.*\.version\.build_date/
+    - drop_fields:
+        when:
+          regexp: {source: "/var/lib/docker/containers/.*"}
+        fields: [source]

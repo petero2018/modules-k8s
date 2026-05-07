@@ -1,0 +1,13 @@
+apiVersion: elbv2.k8s.aws/v1beta1
+kind: TargetGroupBinding
+metadata:
+  name: ingress-${ingress_name}-${service_name}-${service_port}
+  namespace: ${namespace}
+  labels:
+    ec2.amazonaws.com/target-group-name: ${target_group_name}
+spec:
+  serviceRef:
+    name: ${service_name}
+    port: ${service_port}
+  targetGroupARN: ${target_group_arn}
+  targetType: ip

@@ -1,0 +1,17 @@
+registry: txt
+policy: sync
+txtOwnerId: ${eks_cluster}
+
+provider: aws
+aws:
+  region: ${aws_region}
+  zoneType: public
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: ${iam_role_arn}
+
+zoneIdFilters:
+%{ for zone_id in zone_ids ~}
+- ${zone_id}
+%{ endfor ~}

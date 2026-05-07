@@ -1,0 +1,11 @@
+apiVersion: ${crd}
+kind: TargetGroupBinding
+metadata:
+  name: ${name}
+  namespace: ${namespace}
+spec:
+  serviceRef:
+    name: ${service_name}
+    port: ${port}
+  targetGroupARN: ${target_group_arn}
+  targetType: ip

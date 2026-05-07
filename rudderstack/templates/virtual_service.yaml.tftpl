@@ -1,0 +1,14 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: dispatcher-public
+  namespace: ${namespace}
+spec:
+  gateways:
+  - ${gateway}
+  hosts:
+  - ${hostname}
+  http:
+  - route:
+    - destination:
+        host: dispatcher-primary

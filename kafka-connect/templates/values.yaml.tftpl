@@ -1,0 +1,74 @@
+global:
+  env: ${environment}
+  environment: ${environment}
+  region: ${region}
+  version: "${app_version}"
+
+image:
+  name: ${image_repository}
+
+deploy:
+  roleARN: ${iam_role_arn}
+  requests:
+    memory: ${resources.memory_requests}
+    cpu: ${resources.cpu_requests}
+  limits:
+    memory: ${resources.memory_limits}
+  scale:
+    minReplicas: "${scale.min_replicas}"
+    maxReplicas: "${scale.max_replicas}"
+    cpu: "80"
+    memory: "70"
+  ports:
+    http: "${app_config.api_port}"
+  probes:
+    liveness:
+      httpGet:
+        path: /connectors
+        port: http
+        initialDelaySeconds: 45
+    readiness:
+      httpGet:
+        path: /connectors
+        port: http
+        initialDelaySeconds: 30
+  env:
+    fieldPath:
+      CONNECT_REST_ADVERTISED_HOST_NAME: status.podIP
+  annotations:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "9093,9094,9096,9098"
+  sidecar:
+    statsd:
+      enabled: false
+
+config:
+  KAFKA_HEAP_OPTS: "-XX:MaxRAMPercentage=80.0"
+  CONNECT_BOOTSTRAP_SERVERS: "${app_config.bootstrap_servers}"
+  CONNECT_GROUP_ID: "${app_config.group_id}"
+  CONNECT_REST_PORT: "${app_config.api_port}"
+  CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "${app_config.replication_factor}"
+  CONNECT_CONFIG_STORAGE_TOPIC: "${app_config.config_storage_topic}"
+  CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "${app_config.replication_factor}"
+  CONNECT_OFFSET_STORAGE_TOPIC: "${app_config.offset_storage_topic}"
+  CONNECT_OFFSET_FLUSH_INTERVAL_MS: "${app_config.offset_flush_interval_ms}"
+  CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "${app_config.replication_factor}"
+  CONNECT_STATUS_STORAGE_TOPIC: "${app_config.status_storage_topic}"
+  CONNECT_SECURITY_PROTOCOL: "SASL_SSL"
+  CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+  CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+  CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+  CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+  CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+  CONNECT_SASL_MECHANISM: "AWS_MSK_IAM"
+  CONNECT_SASL_JAAS_CONFIG: "software.amazon.msk.auth.iam.IAMLoginModule required awsCredentialsProvider=\"com.amazonaws.auth.WebIdentityTokenCredentialsProvider\";"
+  CONNECT_SASL_CLIENT_CALLBACK_HANDLER_CLASS: "software.amazon.msk.auth.iam.IAMClientCallbackHandler"
+  CONNECT_AWS_CREDENTIALS_PROVIDER: "com.amazonaws.auth.WebIdentityTokenCredentialsProvider"
+  CONNECT_CONSUMER_SECURITY_PROTOCOL: "SASL_SSL"
+  CONNECT_CONSUMER_SASL_MECHANISM: "AWS_MSK_IAM"
+  CONNECT_CONSUMER_SASL_CLIENT_CALLBACK_HANDLER_CLASS: "software.amazon.msk.auth.iam.IAMClientCallbackHandler"
+  CONNECT_CONSUMER_SASL_JAAS_CONFIG: "software.amazon.msk.auth.iam.IAMLoginModule required awsCredentialsProvider=\"com.amazonaws.auth.WebIdentityTokenCredentialsProvider\";"
+  CONNECT_PRODUCER_SECURITY_PROTOCOL: "SASL_SSL"
+  CONNECT_PRODUCER_SASL_MECHANISM: "AWS_MSK_IAM"
+  CONNECT_PRODUCER_SASL_CLIENT_CALLBACK_HANDLER_CLASS: "software.amazon.msk.auth.iam.IAMClientCallbackHandler"
+  CONNECT_PRODUCER_SASL_JAAS_CONFIG: "software.amazon.msk.auth.iam.IAMLoginModule required awsCredentialsProvider=\"com.amazonaws.auth.WebIdentityTokenCredentialsProvider\";"
+  CONNECT_LOG4J_ROOT_LOGLEVEL: "${log_level}"

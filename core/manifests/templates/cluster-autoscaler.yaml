@@ -1,0 +1,28 @@
+replicaCount: 2
+
+autoDiscovery:
+  clusterName: ${eks_cluster}
+
+rbac:
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: ${iam_role_arn}
+
+image:
+  tag: ${image_tag}
+
+resources:
+  requests:
+    cpu: "1000m"
+    memory: "1024Mi"
+  limits:
+    cpu: "1000m"
+    memory: "2048Mi"
+
+extraArgs:
+  logtostderr: true
+  stderrthreshold: info
+  v: 4
+  scale-down-utilization-threshold: ${config.scale_down_utilization_threshold}
+  skip-nodes-with-local-storage: ${config.skip_nodes_with_local_storage}
+  scale-down-unneeded-time: ${config.scale_down_unneeded_time}

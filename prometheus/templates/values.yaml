@@ -1,0 +1,16 @@
+server:
+  statefulSet:
+    enabled: true
+
+  retention: ${RETENTION}
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  global:
+    scrape_interval: ${SCRAPE_INTERVAL}
+
+  persistentVolume:
+    size: ${VOLUME_SIZE}

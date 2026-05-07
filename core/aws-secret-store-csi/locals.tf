@@ -1,0 +1,7 @@
+locals {
+  tolerations = [
+    {
+      operator = "Exists"
+    }
+  ]
+}

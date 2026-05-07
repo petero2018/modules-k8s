@@ -1,0 +1,57 @@
+image:
+  registry: docker.io
+  repository: provectuslabs/kafka-ui
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+yamlApplicationConfig:
+  filtering:
+    groovy:
+      enabled: true
+  kafka:
+    clusters:
+      - bootstrapServers: "${bootstrap_servers}"
+        kafkaConnect:
+          - address: "http://kafka-connect.kafka.svc.cluster.local"
+            name: "connect"
+        name: "${cluster_name}"
+        properties:
+          security.protocol: "SASL_SSL"
+          sasl.mechanism: "AWS_MSK_IAM"
+          sasl.jaas.config: "software.amazon.msk.auth.iam.IAMLoginModule required awsCredentialsProvider=\"com.amazonaws.auth.WebIdentityTokenCredentialsProvider\";"
+          sasl.client.callback.handler.class: "software.amazon.msk.auth.iam.IAMClientCallbackHandler"
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  limits:
+    memory: ${resources.memory_limits}
+  requests:
+    cpu: ${resources.cpu_requests}
+    memory: ${resources.memory_requests}
+
+autoscaling:
+  enabled: true
+  minReplicas: ${scale.min_replicas}
+  maxReplicas: ${scale.max_replicas}
+  targetCPUUtilizationPercentage: 70
+
+annotations:
+  traffic.sidecar.istio.io/excludeOutboundPorts: "9093,9094,9096,9098"
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: "${iam_role_arn}"
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+env: {}

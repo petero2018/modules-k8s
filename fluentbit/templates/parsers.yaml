@@ -1,0 +1,11 @@
+config:
+  customParsers: |
+    %{ for parser_name, parser_config in PARSERS ~}[PARSER]
+        Name                ${parser_name}
+        Format              ${parser_config.format}
+        %{~ if parser_config.regex != null ~}
+        Regex               ${parser_config.regex}%{~ endif ~}
+        Time_Key            ${parser_config.time_key}
+        Time_Format         ${parser_config.time_format}
+
+    %{ endfor ~}

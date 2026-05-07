@@ -1,0 +1,72 @@
+config:
+  inputs: |
+    # Container Application logs
+    [INPUT]
+        Name                tail
+        Tag                 ${APPLICATION_TAG}.*
+        Exclude_Path        ${APPLICATION_EXCLUDE}
+        Path                /var/log/containers/*.log
+        Parser              ${CONTAINER_PARSER}
+        DB                  /var/fluent-bit/state/flb_container.db
+        Mem_Buf_Limit       ${CONTAINER_MEM_BUF_LIMIT}
+        Skip_Long_Lines     ${CONTAINER_SKIP_LONG_LINES}
+        Refresh_Interval    ${CONTAINER_REFRESH_INTERVAL}
+        Rotate_Wait         ${CONTAINER_ROTATE_WAIT}
+        storage.type        filesystem
+
+    # Grouped Containers
+    %{ for group_tag, group_containers in CONTAINER_GROUPS ~}[INPUT]
+        Name                tail
+        Tag                 ${group_tag}.*
+        Path                ${group_containers}
+        Parser              ${CONTAINER_PARSER}
+        DB                  /var/fluent-bit/state/flb_${replace(group_tag, ".", "_")}.db
+        Mem_Buf_Limit       ${CONTAINER_MEM_BUF_LIMIT}
+        Skip_Long_Lines     ${CONTAINER_SKIP_LONG_LINES}
+        Refresh_Interval    ${CONTAINER_REFRESH_INTERVAL}
+        Rotate_Wait         ${CONTAINER_ROTATE_WAIT}
+        storage.type        filesystem
+
+    %{ endfor ~}
+
+    %{~ if DATAPLANE_ENABLED ~}
+    # Dataplane Containers
+    [INPUT]
+        Name                tail
+        Tag                 ${DATAPLANE_TAG}.*
+        %{~ if DATAPLANE_CONTAINERS_IGNORE != "" ~}
+        Exclude_Path        ${DATAPLANE_CONTAINERS_IGNORE}%{~ endif }
+        Path                ${DATAPLANE_CONTAINERS}
+        Parser              ${CONTAINER_PARSER}
+        DB                  /var/fluent-bit/state/flb_dataplane_containers.db
+        Mem_Buf_Limit       ${CONTAINER_MEM_BUF_LIMIT}
+        Skip_Long_Lines     ${CONTAINER_SKIP_LONG_LINES}
+        Refresh_Interval    ${CONTAINER_REFRESH_INTERVAL}
+        Rotate_Wait         ${CONTAINER_ROTATE_WAIT}
+        storage.type        filesystem
+    %{~ endif ~}
+
+    %{~ if HOST_ENABLED ~}
+    # Host files
+    %{ for host_file_name, host_file_path in HOST_LOGS ~}[INPUT]
+        Name                tail
+        Tag                 ${HOST_TAG_PREFIX}.${host_file_name}
+        Path                ${host_file_path}
+        Parser              ${HOST_PARSER}
+        DB                  /var/fluent-bit/state/flb_${host_file_name}.db
+        Mem_Buf_Limit       ${HOST_MEM_BUF_LIMIT}
+        Skip_Long_Lines     ${HOST_SKIP_LONG_LINES}
+        Refresh_Interval    ${HOST_REFRESH_INTERVAL}
+
+    %{ endfor ~}
+    %{~ endif ~}
+
+    %{~ if SYSTEMD_ENABLED ~}
+    # Systemd logs
+    [INPUT]
+        Name                systemd
+        Tag                 ${SYSTEMD_TAG}.*
+        %{ for systemd_unit in SYSTEMD_UNITS }Systemd_Filter      _SYSTEMD_UNIT=${systemd_unit}
+        %{ endfor ~}DB                  /var/fluent-bit/state/systemd.db
+        Path                /var/log/journal
+    %{~ endif ~}

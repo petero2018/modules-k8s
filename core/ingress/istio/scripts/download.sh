@@ -1,0 +1,1 @@
+../../../istio/scripts/download.sh

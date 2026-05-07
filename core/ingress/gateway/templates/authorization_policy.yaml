@@ -1,0 +1,33 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-ips
+  namespace: ${namespace}
+spec:
+  selector:
+    matchLabels:
+      %{~ for key, value in ingress_labels ~}
+        ${key}: ${value}
+      %{~ endfor ~}
+  action: ALLOW
+  rules:
+  %{~ for allow_rule in allow_rules ~}
+  - from:
+    - source:
+        ${allow_rule.type}:
+        %{~ for allowed_ip in allow_rule.cidr_blocks ~}
+        - "${allowed_ip}"
+        %{~ endfor ~}
+    to:
+    - operation:
+        hosts:
+        %{~ for hostname in allow_rule.hostnames ~}
+        - "${hostname}"
+        %{~ endfor ~}
+  %{~ endfor ~}
+  - to:
+    - operation:
+        hosts:
+        %{~ for hostname in public_hostnames ~}
+        - "${hostname}"
+        %{~ endfor ~}

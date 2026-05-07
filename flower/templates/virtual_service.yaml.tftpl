@@ -1,0 +1,19 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: "${name}"
+  namespace: "${namespace}"
+spec:
+  hosts:
+  %{~ for hostname in hostnames ~}
+  - "${hostname}"
+  %{~ endfor ~}
+  gateways:
+  - "${gateway_namespace}/${gateway_name}"
+  http:
+  - match:
+    - uri:
+        prefix: "/"
+    route:
+    - destination:
+        host: ${name}.${namespace}.svc.cluster.local
